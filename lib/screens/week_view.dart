@@ -21,6 +21,8 @@ class _WeekViewState extends State<WeekView> {
   late int _selectedDay;
   String? _expandedSessionId;
 
+  static const _dayNames = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+
   @override
   void initState() {
     super.initState();
@@ -139,6 +141,7 @@ class _WeekViewState extends State<WeekView> {
           final isToday = _today.weekday == weekday;
           final isSelected = _selectedDay == weekday;
           final hasActivity = HiveService.hasActivityOnDate(date);
+          final dayType = HiveService.getDayType(date);
 
           return Expanded(
             child: Padding(
@@ -150,8 +153,8 @@ class _WeekViewState extends State<WeekView> {
                   isToday: isToday,
                   isSelected: isSelected,
                   hasActivity: hasActivity,
-                  isRest: weekday == 6,
-                  isGameDay: weekday == 7,
+                  isRest: dayType == 'descanso',
+                  isGameDay: dayType == 'partido',
                   green: _green,
                 ),
               ),
@@ -211,9 +214,68 @@ class _WeekViewState extends State<WeekView> {
   // ── Content ───────────────────────────────────────────────────────────────
 
   Widget _buildContent(List<String> sessionIds) {
-    if (_selectedDay == 6) return _buildRestDayCard();
-    if (_selectedDay == 7) return _buildGameDayCard();
-    return _buildPoolSessions(sessionIds);
+    final date = _dayDate(_selectedDay);
+    final dayType = HiveService.getDayType(date);
+    final dayName = _dayNames[_selectedDay - 1];
+    return Column(
+      children: [
+        _buildDayTypeChips(date, dayType),
+        Expanded(
+          child: switch (dayType) {
+            'descanso' => _buildRestDayCard(dayName),
+            'partido'  => _buildGameDayCard(dayName),
+            _          => _buildPoolSessions(sessionIds),
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDayTypeChips(DateTime date, String current) {
+    const types = [
+      ('entrenamiento', 'Entreno', Icons.fitness_center_rounded),
+      ('descanso', 'Descanso', Icons.bedtime_rounded),
+      ('partido', 'Partido', Icons.sports_soccer_rounded),
+    ];
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+      child: Row(
+        children: types.map((t) {
+          final isSelected = current == t.$1;
+          return Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: GestureDetector(
+              onTap: isSelected ? null : () async {
+                await HiveService.setDayType(date, t.$1);
+                setState(() {});
+              },
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: isSelected ? _green : const Color(0xFFF0F0F0),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(t.$3, size: 13,
+                        color: isSelected ? Colors.white : const Color(0xFF888888)),
+                    const SizedBox(width: 4),
+                    Text(t.$2,
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: isSelected ? Colors.white : const Color(0xFF888888),
+                        )),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
   }
 
   // ── Pool sessions ─────────────────────────────────────────────────────────
@@ -527,13 +589,13 @@ class _WeekViewState extends State<WeekView> {
 
   // ── Rest day (Saturday) ───────────────────────────────────────────────────
 
-  Widget _buildRestDayCard() {
+  Widget _buildRestDayCard(String dayName) {
     return Padding(
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _dayLabel('Sábado'),
+          _dayLabel(dayName),
           const SizedBox(height: 4),
           Text(
             'Descanso',
@@ -659,14 +721,14 @@ class _WeekViewState extends State<WeekView> {
 
   // ── Game day (Sunday) ─────────────────────────────────────────────────────
 
-  Widget _buildGameDayCard() {
+  Widget _buildGameDayCard(String dayName) {
     final daysLeft = HiveService.daysUntilCycleEnd();
     return Padding(
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _dayLabel('Domingo'),
+          _dayLabel(dayName),
           const SizedBox(height: 4),
           Text(
             daysLeft == 0 ? '¡Hoy es el partido!' : 'Día de Partido',

@@ -322,6 +322,27 @@ class HiveService {
     return endDate.difference(today).inDays;
   }
 
+  // ── Day type override ─────────────────────────────────────────────────────
+
+  static String getDayType(DateTime date) {
+    final key = 'day_type_${_isoDate(date)}';
+    return Hive.box(metaBox).get(key) as String? ?? _defaultDayType(date.weekday);
+  }
+
+  static Future<void> setDayType(DateTime date, String type) async {
+    final key = 'day_type_${_isoDate(date)}';
+    await Hive.box(metaBox).put(key, type);
+  }
+
+  static String _defaultDayType(int weekday) {
+    if (weekday == DateTime.saturday) return 'descanso';
+    if (weekday == DateTime.sunday) return 'partido';
+    return 'entrenamiento';
+  }
+
+  static String _isoDate(DateTime d) =>
+      '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
   // ── Legacy helpers (ejercicio detail + checks históricos) ─────────────────
 
   static bool isSessionComplete(String sessionId, DateTime date) {
