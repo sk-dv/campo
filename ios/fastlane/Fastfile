@@ -24,7 +24,7 @@ platform :ios do
       export_method: "app-store",
       export_options: {
         teamID: ENV["TEAM_ID"],
-        signingStyle: "automatic",
+        signingStyle: "manual",
         provisioningProfiles: {
           "io.campo" => lane_context[SharedValues::SIGH_PROFILE_PATH]
         }
