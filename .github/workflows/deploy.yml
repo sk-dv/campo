@@ -21,6 +21,7 @@ jobs:
       - name: Write App Store Connect key
         run: |
           echo "${{ secrets.ASC_KEY_CONTENT }}" | base64 --decode > ios/AuthKey_${{ secrets.ASC_KEY_ID }}.p8
+          echo "ASC_KEY_FILEPATH=AuthKey_${{ secrets.ASC_KEY_ID }}.p8" >> $GITHUB_ENV
 
       - name: Import distribution certificate
         env:
@@ -56,7 +57,7 @@ jobs:
         env:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
-          ASC_KEY_FILEPATH: "../AuthKey_${{ secrets.ASC_KEY_ID }}.p8"
+          ASC_KEY_FILEPATH: ${{ env.ASC_KEY_FILEPATH }}
           TEAM_ID: ${{ secrets.TEAM_ID }}
         run: fastlane beta
 
