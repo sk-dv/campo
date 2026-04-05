@@ -5,6 +5,7 @@ import '../data/hive_service.dart';
 import '../models/exercise.dart';
 import '../models/training_session.dart';
 import 'exercise_detail_view.dart';
+import 'checkin_sheet.dart';
 
 class WeekView extends StatefulWidget {
   const WeekView({super.key});
@@ -47,6 +48,16 @@ class _WeekViewState extends State<WeekView> {
 
         return Scaffold(
           backgroundColor: const Color(0xFFF5F5F5),
+          floatingActionButton: FloatingActionButton.extended(
+            onPressed: () => CheckinSheet.show(context),
+            backgroundColor: _green,
+            icon: const Icon(Icons.mood_rounded, color: Colors.white),
+            label: Text('¿Cómo estoy?',
+                style: GoogleFonts.inter(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white)),
+          ),
           body: SafeArea(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
