@@ -34,8 +34,9 @@ jobs:
       - name: Flutter pub get
         run: flutter pub get
 
-      - name: Flutter build iOS
-        run: flutter build ios --release --no-codesign
+      - name: Pod install
+        working-directory: ios
+        run: pod install
 
       - name: Install Fastlane
         working-directory: ios
