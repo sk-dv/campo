@@ -42,7 +42,7 @@ class HiveService {
 
   static Future<void> _seedIfNeeded() async {
     final meta = Hive.box(metaBox);
-    if (meta.get('seeded_v2') == true) return;
+    if (meta.get('seeded_v3') == true) return;
 
     // Exercises + sessions
     final exerciseBox = Hive.box<Exercise>(exercisesBox);
@@ -67,12 +67,13 @@ class HiveService {
         },
         {
           'weekStart': '2026-04-06',
-          'target': 4,
+          'target': 5,
           'sessionIds': [
             'sesion-001',
             'sesion-correr-2',
             'sesion-fuerza-1',
             'sesion-tecnica-2',
+            'sesion-potencia-tiro',
           ],
         },
         {
@@ -125,7 +126,7 @@ class HiveService {
       reasonIndex: 1, // nutricion_personal
     ));
 
-    await meta.put('seeded_v2', true);
+    await meta.put('seeded_v3', true);
     // Borrar flag viejo si existe
     await meta.delete('seeded');
   }

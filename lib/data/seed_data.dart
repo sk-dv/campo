@@ -352,6 +352,38 @@ class SeedData {
         ],
       ),
 
+      // ── Potencia de tiro ──────────────────────────────────────────────────
+      Exercise(
+        id: 'ex-tiro-swing',
+        name: 'Swing de pierna sin balón',
+        category: ExerciseCategory.tecnica,
+        durationMinutes: 10,
+        instructions: [
+          'Para de pie con apoyo en pared si necesitas balance.',
+          'Pie de apoyo firme al suelo, a 20cm de donde imaginas el balón.',
+          'Tobillo de la pierna de golpeo en flexión plantar (apuntando abajo), rígido durante todo el movimiento.',
+          'Swing controlado hacia adelante llevando la cadera hacia el objetivo — no solo la pierna.',
+          'Regresa lento, repite 10 veces por pierna.',
+          '3 series. Descansa 45 seg entre series.',
+          'Objetivo: grabar el patrón motor, no velocidad.',
+        ],
+      ),
+      Exercise(
+        id: 'ex-tiro-bulgara',
+        name: 'Sentadilla búlgara',
+        category: ExerciseCategory.fisico,
+        durationMinutes: 15,
+        instructions: [
+          'Pie trasero elevado en una silla o banca a ~50cm.',
+          'Pie delantero al frente, rodilla alineada con el pie.',
+          'Baja hasta 90° controlando el movimiento.',
+          'Empuja desde el talón para subir.',
+          '3 series de 8 repeticiones por pierna.',
+          'Descansa 60 seg entre series.',
+          'Empieza con peso corporal, agrega mochila con peso cuando domines el movimiento.',
+        ],
+      ),
+
       // ── Ejercicios mentales ───────────────────────────────────────────────
       Exercise(
         id: 'ex-mental-viz',
@@ -501,6 +533,18 @@ class SeedData {
         title: 'Correr — 35 min + sprints',
         subtitle: 'Pista / Calle · 40 min',
         exerciseIds: ['ex-run-medium'],
+      ),
+      TrainingSession(
+        id: 'sesion-potencia-tiro',
+        weekday: 0,
+        title: 'Potencia de tiro',
+        subtitle: 'Deportivo · 45 min',
+        exerciseIds: [
+          'ex-mon-2',        // movilidad cadera
+          'ex-tiro-swing',   // swing sin balón
+          'ex-tue-5',        // finalización con balón
+          'ex-tiro-bulgara', // fuerza unilateral
+        ],
       ),
       TrainingSession(
         id: 'sesion-pre-partido',
