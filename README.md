@@ -1,16 +1,29 @@
-# campo
+# Campo
 
-A new Flutter project.
+Personal football training tracker for iPhone. Built for a Sunday league player preparing for match day.
 
-## Getting Started
+## What it does
 
-This project is a starting point for a Flutter application.
+- Weekly session pool — complete any session any day, no fixed schedule
+- Exercise library with timer and image guides
+- "Skip" a session with a reason (not a failure, just context)
+- Weight tracking
+- AI coach that reads your current cycle, weekly progress, and daily check-in
 
-A few resources to get you started if this is your first Flutter project:
+## Stack
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+Flutter · Hive · Firebase (Auth, Firestore, Functions) · Anthropic Claude
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Architecture
+
+Hive is the local cache for instant UI. Firestore is the source of truth. The AI coach runs through a Cloud Function — the Anthropic API key never touches the client.
+
+## Setup
+
+1. Clone the repo
+2. Add `ios/Runner/GoogleService-Info.plist` from your Firebase project
+3. `flutter pub get`
+4. `cd functions && npm install`
+5. `firebase functions:secrets:set ANTHROPIC_KEY`
+6. `firebase deploy --only functions`
+7. Run on device

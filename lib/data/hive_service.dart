@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../models/exercise.dart';
@@ -7,6 +8,7 @@ import '../models/weight_record.dart';
 import '../models/skip_record.dart';
 import '../models/day_record.dart';
 import 'seed_data.dart';
+import 'firestore_service.dart';
 
 class HiveService {
   static const String exercisesBox = 'exercises';
@@ -173,6 +175,21 @@ class HiveService {
       existing.isDone = !existing.isDone;
       await existing.save();
     }
+    _syncCompletedSessionIfNeeded(sessionId);
+  }
+
+  static void _syncCompletedSessionIfNeeded(String sessionId) {
+    if (!isSessionDoneThisWeek(sessionId)) return;
+    final session = sessions.get(sessionId);
+    if (session == null) return;
+    final ws = _thisWeekStart();
+    final weekStartStr =
+        '${ws.year}-${ws.month.toString().padLeft(2, '0')}-${ws.day.toString().padLeft(2, '0')}';
+    unawaited(FirestoreService.recordCompletedSession(
+      sessionId: sessionId,
+      weekStart: weekStartStr,
+      exerciseIds: session.exerciseIds,
+    ));
   }
 
   static bool isChecked(String exerciseId, String sessionId, DateTime date) {
@@ -352,7 +369,9 @@ class HiveService {
   static Future<void> addWeight(double kg) async {
     final now = DateTime.now();
     final id = 'weight-${now.millisecondsSinceEpoch}';
-    await weightRecords.put(id, WeightRecord(id: id, date: now, weightKg: kg));
+    final record = WeightRecord(id: id, date: now, weightKg: kg);
+    await weightRecords.put(id, record);
+    unawaited(FirestoreService.addWeightRecord(record));
   }
 
   // ── Skip helpers ──────────────────────────────────────────────────────────
@@ -360,11 +379,13 @@ class HiveService {
   static Future<void> skipSession(String sessionId, int reasonIndex) async {
     final now = DateTime.now();
     final id = 'skip-$sessionId-${now.millisecondsSinceEpoch}';
-    await skipRecords.put(id, SkipRecord(
+    final record = SkipRecord(
       id: id,
       date: now,
       sessionId: sessionId,
       reasonIndex: reasonIndex,
-    ));
+    );
+    await skipRecords.put(id, record);
+    unawaited(FirestoreService.addSkipRecord(record));
   }
 }

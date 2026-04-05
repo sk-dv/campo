@@ -61,7 +61,12 @@ ios/*.p8
 **/*.hive
 **/*.lock
 
+# Functions build output
+functions/node_modules/
+functions/lib/
+
 # Local only
+ios/Runner/GoogleService-Info.plist
 .claude/
 CLAUDE.md
 SESION_ENTRENADOR.md

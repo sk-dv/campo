@@ -26,4 +26,12 @@ class TrainingSession extends HiveObject {
     required this.subtitle,
     required this.exerciseIds,
   });
+
+  Map<String, dynamic> toMap() => {
+        'id': id,
+        'weekday': weekday,
+        'title': title,
+        'subtitle': subtitle,
+        'exerciseIds': exerciseIds,
+      };
 }

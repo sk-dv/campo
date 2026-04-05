@@ -52,4 +52,15 @@ class Exercise extends HiveObject {
   })  : imagePaths = imagePaths ?? [],
         imageTimerSeconds = imageTimerSeconds ?? [],
         defaultTimerSeconds = defaultTimerSeconds ?? 0;
+
+  Map<String, dynamic> toMap() => {
+        'id': id,
+        'name': name,
+        'category': category.name,
+        'durationMinutes': durationMinutes,
+        'instructions': instructions,
+        'imagePaths': imagePaths,
+        'imageTimerSeconds': imageTimerSeconds,
+        'defaultTimerSeconds': defaultTimerSeconds,
+      };
 }

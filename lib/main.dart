@@ -1,14 +1,66 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'data/hive_service.dart';
+import 'data/firestore_service.dart';
 import 'screens/week_view.dart';
 import 'screens/exercises_list_view.dart';
 import 'screens/historial_view.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
   await HiveService.init();
+  try {
+    await FirestoreService.init();
+    await _migrateToFirestoreIfNeeded();
+  } catch (_) {
+    // Firebase no disponible — la app funciona offline con Hive
+  }
   runApp(const CampoApp());
+}
+
+Future<void> _migrateToFirestoreIfNeeded() async {
+  final meta = Hive.box(HiveService.metaBox);
+  if (meta.get('firestore_migrated_v1') == true) return;
+
+  for (final ex in HiveService.exercises.values) {
+    await FirestoreService.upsertExercise(ex);
+  }
+  for (final s in HiveService.sessions.values) {
+    await FirestoreService.upsertSession(s);
+  }
+  for (final w in HiveService.weightRecords.values) {
+    await FirestoreService.addWeightRecord(w);
+  }
+  for (final s in HiveService.skipRecords.values) {
+    await FirestoreService.addSkipRecord(s);
+  }
+
+  // Reconstruir sesiones completadas desde check_records
+  final Map<String, Set<String>> exercisesByKey = {};
+  for (final r in HiveService.checkRecords.values) {
+    if (!r.isDone) continue;
+    final ws = _weekStartStr(r.completedDate);
+    final key = '${r.sessionId}|$ws';
+    exercisesByKey.putIfAbsent(key, () => {}).add(r.exerciseId);
+  }
+  for (final entry in exercisesByKey.entries) {
+    final parts = entry.key.split('|');
+    await FirestoreService.recordCompletedSession(
+      sessionId: parts[0],
+      weekStart: parts[1],
+      exerciseIds: entry.value.toList(),
+    );
+  }
+
+  await meta.put('firestore_migrated_v1', true);
+}
+
+String _weekStartStr(DateTime date) {
+  final monday = date.subtract(Duration(days: date.weekday - 1));
+  return '${monday.year}-${monday.month.toString().padLeft(2, '0')}-${monday.day.toString().padLeft(2, '0')}';
 }
 
 class CampoApp extends StatelessWidget {

@@ -20,6 +20,10 @@ dependencies:
   archive: ^3.6.1
   share_plus: ^10.0.0
   file_picker: ^8.1.0
+  firebase_core: ^3.0.0
+  cloud_firestore: ^5.0.0
+  firebase_auth: ^5.0.0
+  cloud_functions: ^5.0.0
 
 dev_dependencies:
   flutter_test:
