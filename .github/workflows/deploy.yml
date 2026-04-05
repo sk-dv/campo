@@ -49,6 +49,14 @@ jobs:
 
           rm /tmp/cert.p12
 
+      - name: Install CocoaPods dependencies
+        run: |
+          cd ios
+          pod install
+
+      - name: Flutter build iOS
+        run: flutter build ios --release --no-codesign
+
       - name: Install Fastlane
         run: gem install fastlane --no-document
 
