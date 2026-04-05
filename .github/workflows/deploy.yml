@@ -83,6 +83,11 @@ jobs:
           TEAM_ID: ${{ secrets.TEAM_ID }}
         run: bundle exec fastlane beta
 
+      - name: Debug build logs on failure
+        if: failure()
+        run: |
+          grep -A 5 "error:" ~/Library/Logs/gym/Runner-Runner.log || echo "No gym log found"
+
       - name: Cleanup
         if: always()
         run: |

@@ -22,11 +22,12 @@ platform :ios do
       workspace: "Runner.xcworkspace",
       scheme: "Runner",
       export_method: "app-store",
+      xcargs: "CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY='Apple Distribution'",
       export_options: {
         teamID: ENV["TEAM_ID"],
         signingStyle: "manual",
         provisioningProfiles: {
-          "io.campo" => lane_context[SharedValues::SIGH_PROFILE_PATH]
+          "io.campo" => lane_context[SharedValues::SIGH_NAME]
         }
       }
     )
