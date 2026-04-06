@@ -1,7 +1,7 @@
 name: campo
 description: Personal football training tracker
 publish_to: 'none'
-version: 1.0.1+1
+version: 1.0.1+2
 
 environment:
   sdk: ^3.9.2
