@@ -2,8 +2,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import '../data/hive_service.dart';
-import '../models/exercise.dart';
+import 'package:campo/data/hive_service.dart';
+import 'package:campo/models/exercise.dart';
 import 'exercise_edit_view.dart';
 import 'workout_player_view.dart';
 

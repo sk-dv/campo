@@ -1,12 +1,12 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:hive_flutter/hive_flutter.dart';
-import '../models/exercise.dart';
-import '../models/training_session.dart';
-import '../models/check_record.dart';
-import '../models/weight_record.dart';
-import '../models/skip_record.dart';
-import '../models/day_record.dart';
+import 'package:campo/models/exercise.dart';
+import 'package:campo/models/training_session.dart';
+import 'package:campo/models/check_record.dart';
+import 'package:campo/models/weight_record.dart';
+import 'package:campo/models/skip_record.dart';
+import 'package:campo/models/day_record.dart';
 import 'seed_data.dart';
 import 'firestore_service.dart';
 
@@ -42,7 +42,7 @@ class HiveService {
 
   static Future<void> _seedIfNeeded() async {
     final meta = Hive.box(metaBox);
-    if (meta.get('seeded_v3') == true) return;
+    if (meta.get('seeded_v4') == true) return;
 
     // Exercises + sessions
     final exerciseBox = Hive.box<Exercise>(exercisesBox);
@@ -54,32 +54,86 @@ class HiveService {
       await sessionBox.put(s.id, s);
     }
 
-    // Active cycle: Hacia el partido del 12 de abril
+    // Ciclo: Siete domingos
     await meta.put('active_cycle', jsonEncode({
-      'name': 'Hacia el partido del 12 de abril',
-      'startDate': '2026-04-01',
-      'endDate': '2026-04-12',
+      'name': 'Siete domingos',
+      'startDate': '2026-04-06',
+      'endDate': '2026-05-24',
       'weeks': [
         {
-          'weekStart': '2026-03-30',
-          'target': 3,
-          'sessionIds': ['sesion-001', 'sesion-correr-1', 'sesion-fuerza-1'],
-        },
-        {
           'weekStart': '2026-04-06',
-          'target': 5,
+          'target': 3,
+          'focus': 'Potencia de tiro',
           'sessionIds': [
-            'sesion-001',
-            'sesion-correr-2',
-            'sesion-fuerza-1',
-            'sesion-tecnica-2',
             'sesion-potencia-tiro',
+            'sesion-correr-1',
+            'sesion-pre-partido',
           ],
         },
         {
-          'weekStart': '2026-04-11',
-          'target': 1,
-          'sessionIds': ['sesion-pre-partido'],
+          'weekStart': '2026-04-13',
+          'target': 3,
+          'focus': 'Posición y defensa',
+          'sessionIds': [
+            'sesion-tecnica-2',
+            'sesion-correr-1',
+            'sesion-pre-partido',
+          ],
+        },
+        {
+          'weekStart': '2026-04-20',
+          'target': 4,
+          'focus': 'Técnica completa',
+          'sessionIds': [
+            'sesion-001',
+            'sesion-fuerza-1',
+            'sesion-correr-2',
+            'sesion-pre-partido',
+          ],
+        },
+        {
+          'weekStart': '2026-04-27',
+          'target': 4,
+          'focus': 'Físico + tiro',
+          'sessionIds': [
+            'sesion-potencia-tiro',
+            'sesion-fuerza-1',
+            'sesion-correr-2',
+            'sesion-pre-partido',
+          ],
+        },
+        {
+          'weekStart': '2026-05-04',
+          'target': 4,
+          'focus': 'Técnica + posición',
+          'sessionIds': [
+            'sesion-001',
+            'sesion-tecnica-2',
+            'sesion-correr-2',
+            'sesion-pre-partido',
+          ],
+        },
+        {
+          'weekStart': '2026-05-11',
+          'target': 5,
+          'focus': 'Semana pico',
+          'sessionIds': [
+            'sesion-001',
+            'sesion-tecnica-2',
+            'sesion-potencia-tiro',
+            'sesion-fuerza-1',
+            'sesion-pre-partido',
+          ],
+        },
+        {
+          'weekStart': '2026-05-18',
+          'target': 3,
+          'focus': 'Afilado final',
+          'sessionIds': [
+            'sesion-correr-1',
+            'sesion-fuerza-1',
+            'sesion-pre-partido',
+          ],
         },
       ],
     }));
@@ -126,9 +180,7 @@ class HiveService {
       reasonIndex: 1, // nutricion_personal
     ));
 
-    await meta.put('seeded_v3', true);
-    // Borrar flag viejo si existe
-    await meta.delete('seeded');
+    await meta.put('seeded_v4', true);
   }
 
   // ── Boxes ─────────────────────────────────────────────────────────────────
@@ -258,17 +310,18 @@ class HiveService {
   /// IDs de sesiones del pool para esta semana según el ciclo activo.
   static List<String> currentWeekSessionIds() {
     final cycle = activeCycle;
-    if (cycle == null) {
-      return sessions.keys.cast<String>().toList();
-    }
-    final weeks = cycle['weeks'] as List<dynamic>;
+    if (cycle == null) return sessions.keys.cast<String>().toList();
+    final weeks = cycle['weeks'] as List<dynamic>?;
+    if (weeks == null) return sessions.keys.cast<String>().toList();
     final weekStart = _thisWeekStart();
     for (final week in weeks) {
-      final ws = DateTime.parse(week['weekStart'] as String);
+      final ws = DateTime.tryParse(week['weekStart'] as String? ?? '');
+      if (ws == null) continue;
       if (ws.year == weekStart.year &&
           ws.month == weekStart.month &&
           ws.day == weekStart.day) {
-        return (week['sessionIds'] as List<dynamic>).cast<String>();
+        final ids = week['sessionIds'] as List<dynamic>?;
+        return ids?.cast<String>() ?? [];
       }
     }
     return sessions.keys.cast<String>().toList();
@@ -277,10 +330,12 @@ class HiveService {
   static int currentWeekTarget() {
     final cycle = activeCycle;
     if (cycle == null) return 3;
-    final weeks = cycle['weeks'] as List<dynamic>;
+    final weeks = cycle['weeks'] as List<dynamic>?;
+    if (weeks == null) return 3;
     final weekStart = _thisWeekStart();
     for (final week in weeks) {
-      final ws = DateTime.parse(week['weekStart'] as String);
+      final ws = DateTime.tryParse(week['weekStart'] as String? ?? '');
+      if (ws == null) continue;
       if (ws.year == weekStart.year &&
           ws.month == weekStart.month &&
           ws.day == weekStart.day) {

@@ -16,10 +16,20 @@ void main() async {
   try {
     await FirestoreService.init();
     await _migrateToFirestoreIfNeeded();
+    await _syncActiveCycleFromFirestore();
   } catch (_) {
-    // Firebase no disponible — la app funciona offline con Hive
+    // Firebase no disponible — offline con Hive
   }
   runApp(const CampoApp());
+}
+
+// Lee el ciclo de Firestore (config/active_cycle) y lo
+// guarda en Hive. Permite actualizar el ciclo desde
+// Firebase Console sin hacer rebuild.
+Future<void> _syncActiveCycleFromFirestore() async {
+  final json = await FirestoreService.fetchActiveCycle();
+  if (json == null) return;
+  await Hive.box(HiveService.metaBox).put('active_cycle', json);
 }
 
 Future<void> _migrateToFirestoreIfNeeded() async {

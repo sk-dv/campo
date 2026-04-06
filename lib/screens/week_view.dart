@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import '../data/hive_service.dart';
-import '../models/exercise.dart';
-import '../models/training_session.dart';
+import 'package:campo/data/hive_service.dart';
+import 'package:campo/models/exercise.dart';
+import 'package:campo/models/training_session.dart';
 import 'exercise_detail_view.dart';
 import 'checkin_sheet.dart';
 
@@ -50,16 +50,6 @@ class _WeekViewState extends State<WeekView> {
 
         return Scaffold(
           backgroundColor: const Color(0xFFF5F5F5),
-          floatingActionButton: FloatingActionButton.extended(
-            onPressed: () => CheckinSheet.show(context),
-            backgroundColor: _green,
-            icon: const Icon(Icons.mood_rounded, color: Colors.white),
-            label: Text('¿Cómo estoy?',
-                style: GoogleFonts.inter(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white)),
-          ),
           body: SafeArea(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -124,6 +114,33 @@ class _WeekViewState extends State<WeekView> {
               ),
             ),
           ],
+          const Spacer(),
+          GestureDetector(
+            onTap: () => CheckinSheet.show(context),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: _green,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.mood_rounded,
+                      size: 16, color: Colors.white),
+                  const SizedBox(width: 6),
+                  Text(
+                    '¿Cómo estoy?',
+                    style: GoogleFonts.inter(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );

@@ -1,9 +1,10 @@
+import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../models/exercise.dart';
-import '../models/training_session.dart';
-import '../models/weight_record.dart';
-import '../models/skip_record.dart';
+import 'package:campo/models/exercise.dart';
+import 'package:campo/models/training_session.dart';
+import 'package:campo/models/weight_record.dart';
+import 'package:campo/models/skip_record.dart';
 
 class FirestoreService {
   static String? _uid;
@@ -94,7 +95,23 @@ class FirestoreService {
     }, SetOptions(merge: true));
   }
 
-  // ── User: coach logs (Fase 4) ─────────────────────────────────────────────
+  // ── Config: ciclo activo ──────────────────────────────────
+
+  /// Lee config/active_cycle de Firestore.
+  /// Null si no existe o hay error.
+  static Future<String?> fetchActiveCycle() async {
+    try {
+      final snap = await _db.collection('config').doc('active_cycle').get();
+      if (!snap.exists) return null;
+      final data = snap.data();
+      if (data == null) return null;
+      return jsonEncode(data);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  // ── User: coach logs ──────────────────────────────────────────────────────
 
   static Future<String> saveCoachLog({
     required String prompt,
@@ -109,5 +126,44 @@ class FirestoreService {
       'createdAt': FieldValue.serverTimestamp(),
     });
     return ref.id;
+  }
+
+  /// Últimas respuestas del coach. Borra duplicados del mismo día
+  /// de Firestore antes de devolver la lista.
+  static Future<List<Map<String, dynamic>>> fetchCoachLogs() async {
+    if (!isReady) return [];
+    try {
+      final snap = await _userCol('coach_logs')
+          .orderBy('createdAt', descending: true)
+          .get();
+
+      // Agrupar por día — el primero (más reciente) se queda,
+      // el resto se borra de Firestore.
+      final seen = <String>{};
+      final toDelete = <String>[];
+      final result = <Map<String, dynamic>>[];
+
+      for (final doc in snap.docs) {
+        final ts = doc.data()['createdAt'];
+        final date = ts is Timestamp ? ts.toDate() : DateTime.now();
+        final key = '${date.year}-${date.month}-${date.day}';
+        if (seen.add(key)) {
+          result.add(doc.data());
+        } else {
+          toDelete.add(doc.id);
+        }
+      }
+
+      // Borrar duplicados en paralelo
+      if (toDelete.isNotEmpty) {
+        await Future.wait(
+          toDelete.map((id) => _userCol('coach_logs').doc(id).delete()),
+        );
+      }
+
+      return result.take(10).toList();
+    } catch (_) {
+      return [];
+    }
   }
 }

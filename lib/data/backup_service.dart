@@ -6,7 +6,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'hive_service.dart';
-import '../models/exercise.dart';
+import 'package:campo/models/exercise.dart';
 
 class BackupService {
   static const _version = 1;

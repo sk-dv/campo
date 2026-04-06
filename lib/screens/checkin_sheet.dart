@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../data/firestore_service.dart';
-import '../data/coach_service.dart';
+import 'package:campo/data/firestore_service.dart';
+import 'package:campo/data/coach_service.dart';
 
 enum _Phase { form, loading, response }
 
@@ -51,12 +51,16 @@ class _CheckinSheetState extends State<CheckinSheet> {
     final note = _noteController.text.trim();
     final energy = _energy.round();
 
-    await FirestoreService.saveDailyCheckin(
-      date: _todayStr,
-      energyLevel: energy,
-      sleepHours: sleep,
-      note: note,
-    );
+    try {
+      await FirestoreService.saveDailyCheckin(
+        date: _todayStr,
+        energyLevel: energy,
+        sleepHours: sleep,
+        note: note,
+      );
+    } catch (_) {
+      // Guardar falló — seguimos igual, no es bloqueante
+    }
 
     if (!askCoach) {
       if (mounted) Navigator.pop(context);
@@ -79,10 +83,14 @@ class _CheckinSheetState extends State<CheckinSheet> {
       }
     } catch (_) {
       if (mounted) {
+        // Check-in ya fue guardado — solo falló el coach.
+        // Mostramos aviso y cerramos en vez de bloquear.
         setState(() {
-          _error = 'No se pudo conectar con el coach. Intenta más tarde.';
+          _error = 'Check-in guardado. El coach no está disponible ahora.';
           _phase = _Phase.form;
         });
+        await Future.delayed(const Duration(seconds: 2));
+        if (mounted) Navigator.pop(context);
       }
     }
   }
@@ -98,11 +106,19 @@ class _CheckinSheetState extends State<CheckinSheet> {
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-        child: switch (_phase) {
-          _Phase.form => _buildForm(),
-          _Phase.loading => _buildLoading(),
-          _Phase.response => _buildResponse(),
-        },
+        child: GestureDetector(
+          onTap: () => FocusScope.of(context).unfocus(),
+          behavior: HitTestBehavior.opaque,
+          child: SingleChildScrollView(
+            keyboardDismissBehavior:
+                ScrollViewKeyboardDismissBehavior.onDrag,
+            child: switch (_phase) {
+              _Phase.form => _buildForm(),
+              _Phase.loading => _buildLoading(),
+              _Phase.response => _buildResponse(),
+            },
+          ),
+        ),
       ),
     );
   }
@@ -189,6 +205,8 @@ class _CheckinSheetState extends State<CheckinSheet> {
         if (_error != null) ...[
           const SizedBox(height: 12),
           Text(_error!,
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
               style: GoogleFonts.inter(
                   fontSize: 13, color: const Color(0xFFCC3333))),
         ],

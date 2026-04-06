@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import '../data/hive_service.dart';
-import '../models/day_record.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:campo/data/hive_service.dart';
+import 'package:campo/data/firestore_service.dart';
+import 'package:campo/models/day_record.dart';
 
 class HistorialView extends StatelessWidget {
   const HistorialView({super.key});
@@ -51,6 +53,8 @@ class _HistorialContent extends StatelessWidget {
             _buildWeightSection(context),
             const SizedBox(height: 16),
             _buildTimelineSection(),
+            const SizedBox(height: 16),
+            _buildCoachSection(),
           ],
         ),
       ),
@@ -65,7 +69,8 @@ class _HistorialContent extends StatelessWidget {
 
     final name = cycle['name'] as String? ?? '';
     final daysLeft = HiveService.daysUntilCycleEnd();
-    final weeks = cycle['weeks'] as List<dynamic>;
+    final weeks = cycle['weeks'] as List<dynamic>?;
+    if (weeks == null) return const SizedBox.shrink();
 
     return _Card(
       child: Column(
@@ -549,6 +554,325 @@ class _HistorialContent extends StatelessWidget {
         return type;
     }
   }
+
+  // ── Coach logs ──────────────────────────────────────────────────────────────
+
+  Widget _buildCoachSection() {
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: FirestoreService.fetchCoachLogs(),
+      builder: (context, snap) {
+        if (snap.connectionState == ConnectionState.waiting) {
+          return const _Card(
+            child: Center(
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 16),
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            ),
+          );
+        }
+
+        final logs = snap.data ?? [];
+
+        return _Card(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.sports_rounded, size: 18, color: _green),
+                  const SizedBox(width: 8),
+                  Text('Consejos del coach',
+                      style: GoogleFonts.inter(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFF1A1A1A))),
+                ],
+              ),
+              const SizedBox(height: 12),
+              if (logs.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Text(
+                    'Aún no has hablado con el coach. '
+                    'Usa "¿Cómo estoy?" para empezar.',
+                    style: GoogleFonts.inter(
+                        fontSize: 13, color: const Color(0xFFAAAAAA)),
+                  ),
+                )
+              else
+                ...logs.map((l) => _buildCoachItem(context, l)),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildCoachItem(BuildContext context, Map<String, dynamic> log) {
+    final response = log['response'] as String? ?? '';
+    final ts = log['createdAt'];
+    DateTime? date;
+    if (ts is Timestamp) date = ts.toDate();
+    final checkin = log['checkin'] as Map<String, dynamic>?;
+
+    // New logs: 'checkin' field. Old logs: parse from 'prompt'.
+    final int? energy;
+    final dynamic sleep;
+    final String? note;
+    if (checkin != null) {
+      energy = checkin['energyLevel'] as int?;
+      sleep = checkin['sleepHours'];
+      note = checkin['note'] as String?;
+    } else {
+      final prompt = log['prompt'] as String? ?? '';
+      final eM = RegExp(r'energía (\d+)/10').firstMatch(prompt);
+      final sM = RegExp(r'sueño ([\d.]+)h').firstMatch(prompt);
+      // Note is the quoted text after the sleep line
+      final nM =
+          RegExp(r'sueño [\d.]+h\. "([^"]*)"').firstMatch(prompt);
+      energy = eM != null ? int.tryParse(eM.group(1)!) : null;
+      sleep = sM != null ? double.tryParse(sM.group(1)!) : null;
+      note = nM?.group(1);
+    }
+
+    return GestureDetector(
+      onTap: () => _showCoachDetail(
+        context,
+        date: date,
+        energy: energy,
+        sleep: sleep,
+        note: note,
+        response: response,
+      ),
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                if (date != null)
+                  Text(
+                    _formatDate(date),
+                    style: GoogleFonts.inter(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFFAAAAAA)),
+                  ),
+                if (energy != null) ...[
+                  const SizedBox(width: 8),
+                  Text(
+                    '· Energía $energy/10',
+                    style: GoogleFonts.inter(
+                        fontSize: 11,
+                        color: const Color(0xFFAAAAAA)),
+                  ),
+                ],
+                if (sleep != null) ...[
+                  const SizedBox(width: 4),
+                  Text(
+                    '· ${sleep}h sueño',
+                    style: GoogleFonts.inter(
+                        fontSize: 11,
+                        color: const Color(0xFFAAAAAA)),
+                  ),
+                ],
+                const Spacer(),
+                const Icon(Icons.chevron_right_rounded,
+                    size: 16, color: Color(0xFFCCCCCC)),
+              ],
+            ),
+            if (note != null && note.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Text(
+                '"$note"',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.inter(
+                    fontSize: 12,
+                    fontStyle: FontStyle.italic,
+                    color: const Color(0xFF888888)),
+              ),
+            ],
+            const SizedBox(height: 6),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: _green.withValues(alpha: 0.06),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                    color: _green.withValues(alpha: 0.15)),
+              ),
+              child: Text(
+                response,
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.inter(
+                    fontSize: 13,
+                    height: 1.5,
+                    color: const Color(0xFF333333)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showCoachDetail(
+    BuildContext context, {
+    DateTime? date,
+    int? energy,
+    dynamic sleep,
+    String? note,
+    required String response,
+  }) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => DraggableScrollableSheet(
+        initialChildSize: 0.6,
+        minChildSize: 0.4,
+        maxChildSize: 0.92,
+        expand: false,
+        builder: (_, controller) => Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius:
+                BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+          child: ListView(
+            controller: controller,
+            children: [
+              // Handle
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFDDDDDD),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              // Header
+              Row(
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: _green.withValues(alpha: 0.12),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.sports_rounded,
+                        size: 18, color: _green),
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    date != null ? _formatDate(date) : 'Coach',
+                    style: GoogleFonts.inter(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF1A1A1A)),
+                  ),
+                ],
+              ),
+              // Check-in stats
+              if (energy != null || sleep != null) ...[
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    if (energy != null)
+                      _statChip('Energía $energy/10'),
+                    if (energy != null && sleep != null)
+                      const SizedBox(width: 8),
+                    if (sleep != null)
+                      _statChip('${sleep}h sueño'),
+                  ],
+                ),
+              ],
+              // Note
+              if (note != null && note.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                Text(
+                  'Lo que dijiste',
+                  style: GoogleFonts.inter(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF888888)),
+                ),
+                const SizedBox(height: 6),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF5F5F5),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    note,
+                    style: GoogleFonts.inter(
+                        fontSize: 14,
+                        height: 1.5,
+                        color: const Color(0xFF333333)),
+                  ),
+                ),
+              ],
+              // Response
+              const SizedBox(height: 16),
+              Text(
+                'Respuesta del coach',
+                style: GoogleFonts.inter(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF888888)),
+              ),
+              const SizedBox(height: 6),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: _green.withValues(alpha: 0.06),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                      color: _green.withValues(alpha: 0.2)),
+                ),
+                child: Text(
+                  response,
+                  style: GoogleFonts.inter(
+                      fontSize: 15,
+                      height: 1.6,
+                      color: const Color(0xFF1A1A1A)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _statChip(String label) => Container(
+        padding:
+            const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: _green.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.inter(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: _green),
+        ),
+      );
 
   String _formatDate(DateTime d) {
     const months = [

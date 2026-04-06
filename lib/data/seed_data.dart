@@ -1,5 +1,5 @@
-import '../models/exercise.dart';
-import '../models/training_session.dart';
+import 'package:campo/models/exercise.dart';
+import 'package:campo/models/training_session.dart';
 
 class SeedData {
   static List<Exercise> buildExercises() {

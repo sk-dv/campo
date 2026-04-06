@@ -4,8 +4,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
-import '../data/hive_service.dart';
-import '../models/exercise.dart';
+import 'package:campo/data/hive_service.dart';
+import 'package:campo/models/exercise.dart';
 
 class ExerciseEditView extends StatefulWidget {
   final String exerciseId;

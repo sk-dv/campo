@@ -1,4 +1,5 @@
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'hive_service.dart';
 
 class CoachService {
@@ -7,6 +8,11 @@ class CoachService {
     double? sleepHours,
     String? note,
   }) async {
+    // Asegurar que haya un usuario autenticado antes de llamar
+    if (FirebaseAuth.instance.currentUser == null) {
+      await FirebaseAuth.instance.signInAnonymously();
+    }
+
     final callable = FirebaseFunctions.instance.httpsCallable(
       'askCoach',
       options: HttpsCallableOptions(timeout: const Duration(seconds: 30)),

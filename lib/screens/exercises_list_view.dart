@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import '../data/backup_service.dart';
-import '../data/hive_service.dart';
-import '../models/exercise.dart';
+import 'package:campo/data/backup_service.dart';
+import 'package:campo/data/hive_service.dart';
+import 'package:campo/models/exercise.dart';
 import 'exercise_detail_view.dart';
 
 class ExercisesListView extends StatelessWidget {
